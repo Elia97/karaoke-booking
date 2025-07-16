@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Search, Music, Sparkles, Heart } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SongSuggestions } from "@/components/song-suggestions";
-import { SongQuiz } from "@/components/song-quiz";
-import { YouTubeResults } from "@/components/youtube-results";
+import { Search, Sparkles, Heart } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui";
+import {
+  Header,
+  SearchBar,
+  YouTubeResults,
+  SongSuggestions,
+  SongQuiz,
+} from "@/components";
 
 export default function App(): React.JSX.Element {
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -23,71 +23,47 @@ export default function App(): React.JSX.Element {
     }
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchTerm.trim()) return;
-    setActiveTab("search");
-  };
-
   const handleSuggestionSelect = (suggestion: string) => {
     setSearchTerm(suggestion);
     setActiveTab("search");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Music className="h-6 w-6 text-gray-900" />
-              <h1 className="text-2xl font-semibold text-gray-900">Karaoke</h1>
-            </div>
-            <p className="text-gray-600">Trova la canzone perfetta per te</p>
-            {tableNumber && (
-              <Badge variant="outline" className="mt-2">
-                Tavolo {tableNumber}
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Search */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <form onSubmit={handleSearch} className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  type="search"
-                  placeholder="Cerca canzone o artista..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Button type="submit">Cerca</Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Tabs */}
+    <main className="container mx-auto min-h-screen">
+      <Header tableNumber={tableNumber} />
+      <div className="max-w-screen-lg mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        <SearchBar
+          onSearch={(term) => {
+            setSearchTerm(term);
+            setActiveTab("search");
+          }}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="suggestions">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Suggerimenti
+          <TabsList className="grid w-full grid-cols-3 mb-4 sm:mb-6 h-12 sm:h-10">
+            <TabsTrigger
+              value="suggestions"
+              className="text-xs sm:text-sm px-1 sm:px-3"
+            >
+              <Sparkles className="size-3 sm:size-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Suggerimenti</span>
+              <span className="xs:hidden">Sugger.</span>
             </TabsTrigger>
-            <TabsTrigger value="quiz">
-              <Heart className="h-4 w-4 mr-2" />
+            <TabsTrigger
+              value="quiz"
+              className="text-xs sm:text-sm px-1 sm:px-3"
+            >
+              <Heart className="size-3 sm:size-4 mr-1 sm:mr-2" />
               Quiz
             </TabsTrigger>
-            <TabsTrigger value="search">
-              <Search className="h-4 w-4 mr-2" />
-              Ricerca
+            <TabsTrigger
+              value="search"
+              className="text-xs sm:text-sm px-1 sm:px-3"
+            >
+              <Search className="size-3 sm:size-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Ricerca</span>
+              <span className="xs:hidden">Cerca</span>
             </TabsTrigger>
           </TabsList>
 
@@ -104,6 +80,6 @@ export default function App(): React.JSX.Element {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </main>
   );
 }

@@ -118,3 +118,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Classe personalizzata per schermi extra piccoli */
+@layer utilities {
+  @media (max-width: 475px) {
+    .xs\:hidden {
+      display: none;
+    }
+    .xs\:inline {
+      display: inline;
+    }
+    .xs\:block {
+      display: block;
+    }
+    .xs\:flex {
+      display: flex;
+    }
+  }
+}
