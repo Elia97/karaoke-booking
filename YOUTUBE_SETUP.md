@@ -19,7 +19,7 @@
 2. Sostituisci `your_youtube_api_key_here` con la tua vera API key:
 
 ```bash
-VITE_YOUTUBE_API_KEY=AIzaSyDlA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P
+VITE_YOUTUBE_API_KEY=your_youtube_api_key_here
 ```
 
 ## 3. Funzionalità disponibili
