@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Play, ExternalLink, Loader2, Music2 } from "lucide-react";
+import { ExternalLink, Loader2, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { youtubeService } from "@/lib/youtube-service";
@@ -15,18 +15,20 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | undefined>();
-  const [totalResults, setTotalResults] = useState<number>(0);
-  const [currentSearchType, setCurrentSearchType] = useState<boolean>(false); // false = tutti i video, true = solo testi
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [isDebouncing, setIsDebouncing] = useState(false); // Indicatore debounce attivo
+  const pagesLoadedRef = useRef(0);
   const observerRef = useRef<HTMLDivElement>(null);
+  const lastSearchRef = useRef<string>(""); // Protezione contro ricerche duplicate
+
+  // OTTIMIZZAZIONE QUOTA API: Massimizziamo i risultati per ricerca singola
+  // 10 video per ricerca = 100 unità API (stesso costo di 3 video)
+  // Focus su versioni originali con lyrics, evitando karaoke scadenti
+  const MAX_PAGES = 1; // Solo una pagina per ottimizzare le quote API
 
   const searchVideos = useCallback(
-    async (
-      addLyrics: boolean = false,
-      pageToken?: string,
-      appendResults: boolean = false
-    ) => {
+    async (pageToken?: string, appendResults: boolean = false) => {
       if (!searchQuery.trim()) return;
 
       if (appendResults) {
@@ -37,13 +39,12 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
       }
 
       setError(null);
-      setCurrentSearchType(addLyrics);
 
       try {
         const results = await youtubeService.searchVideos(
           searchQuery,
-          8,
-          addLyrics,
+          10, // Aumentato a 10 per migliore UX (stesso costo API)
+          true, // SEMPRE con lyrics, ma cerca versioni originali di qualità
           pageToken
         );
 
@@ -61,8 +62,16 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
         }
 
         setNextPageToken(results.nextPageToken);
-        setTotalResults(results.pageInfo.totalResults);
-        setHasMore(!!results.nextPageToken);
+
+        // Incrementa il contatore delle pagine caricate
+        if (appendResults) {
+          pagesLoadedRef.current = pagesLoadedRef.current + 1;
+        } else {
+          pagesLoadedRef.current = 1;
+        }
+
+        // OTTIMIZZAZIONE: Una sola pagina per ricerca per risparmiare quote API
+        setHasMore(false); // Disabilitiamo scroll infinito per risparmiare quote
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Errore durante la ricerca"
@@ -82,31 +91,54 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
   );
 
   const loadMoreVideos = useCallback(() => {
-    if (nextPageToken && hasMore && !loadingMore && !loading) {
-      searchVideos(currentSearchType, nextPageToken, true);
+    if (
+      nextPageToken &&
+      hasMore &&
+      !loadingMore &&
+      !loading &&
+      pagesLoadedRef.current < MAX_PAGES
+    ) {
+      searchVideos(nextPageToken, true);
     }
-  }, [
-    nextPageToken,
-    hasMore,
-    loadingMore,
-    loading,
-    currentSearchType,
-    searchVideos,
-  ]);
+  }, [nextPageToken, hasMore, loadingMore, loading, searchVideos]);
 
-  // Ricerca automatica quando cambia searchQuery (cerca tutti i video per default)
+  // Ricerca automatica quando cambia searchQuery con DEBOUNCE per proteggere le quote
   useEffect(() => {
+    // PROTEZIONE QUOTE: Debounce di 800ms per evitare ricerche eccessive
     if (searchQuery.trim()) {
-      // Reset della paginazione quando cambia la query
-      setNextPageToken(undefined);
-      setHasMore(true);
-      searchVideos(false);
-    } else {
-      setVideos([]);
-      setHasSearched(false);
-      setNextPageToken(undefined);
-      setHasMore(true);
+      setIsDebouncing(true); // Mostra che stiamo aspettando
     }
+
+    const timeoutId = setTimeout(() => {
+      setIsDebouncing(false); // Fine attesa
+
+      if (searchQuery.trim()) {
+        // PROTEZIONE ANTI-DUPLICAZIONE: Evita ricerche identiche consecutive
+        if (lastSearchRef.current === searchQuery.trim()) {
+          return; // Non rifare la stessa ricerca
+        }
+        lastSearchRef.current = searchQuery.trim();
+
+        // Reset della paginazione quando cambia la query
+        setNextPageToken(undefined);
+        setHasMore(true);
+        pagesLoadedRef.current = 0;
+        searchVideos(); // SEMPRE con lyrics, versioni originali di qualità
+      } else {
+        lastSearchRef.current = "";
+        setVideos([]);
+        setHasSearched(false);
+        setNextPageToken(undefined);
+        setHasMore(true);
+        pagesLoadedRef.current = 0;
+      }
+    }, 800); // 800ms di debounce per proteggere le quote API
+
+    // Cleanup: cancella il timeout se il searchQuery cambia prima dello scadere
+    return () => {
+      clearTimeout(timeoutId);
+      setIsDebouncing(false);
+    };
   }, [searchQuery, searchVideos]);
 
   // Configura l'IntersectionObserver per lo scroll infinito
@@ -142,9 +174,10 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
   if (!hasSearched && !searchQuery) {
     return (
       <div className="text-center py-8">
-        <Play className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">
-          Cerca una canzone per vedere i video di YouTube
+        <Music2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-500">Cerca una canzone per il karaoke</p>
+        <p className="text-xs text-gray-400 mt-2">
+          Troveremo le versioni originali con i testi
         </p>
       </div>
     );
@@ -154,60 +187,23 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
     <div className="space-y-3 sm:space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
         <h3 className="text-base sm:text-lg font-semibold text-center sm:text-left">
-          Video YouTube per "{searchQuery}"
+          Video con testi per "{searchQuery}"
         </h3>
-        <div className="flex gap-1 sm:gap-2 justify-center sm:justify-end">
-          <Button
-            onClick={() => {
-              setNextPageToken(undefined);
-              setHasMore(true);
-              searchVideos(false);
-            }}
-            disabled={loading || !searchQuery.trim()}
-            variant="outline"
-            size="sm"
-            className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-3"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                <span className="hidden xs:inline">Cercando...</span>
-                <span className="xs:hidden">...</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Tutti i video</span>
-                <span className="xs:hidden">Tutti</span>
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => {
-              setNextPageToken(undefined);
-              setHasMore(true);
-              searchVideos(true);
-            }}
-            disabled={loading || !searchQuery.trim()}
-            size="sm"
-            className="flex-1 sm:flex-none text-xs sm:text-sm px-2 sm:px-3"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 animate-spin" />
-                <span className="hidden xs:inline">Cercando...</span>
-                <span className="xs:hidden">...</span>
-              </>
-            ) : (
-              <>
-                <Music2 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                <span className="hidden xs:inline">Solo Testi</span>
-                <span className="xs:hidden">Testi</span>
-              </>
-            )}
-          </Button>
+        <div className="text-xs sm:text-sm text-gray-500">
+          Versioni originali con lyrics
         </div>
       </div>
+
+      {isDebouncing && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-blue-700">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Preparazione ricerca...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {error && (
         <Card className="bg-red-50 border-red-200">
@@ -281,28 +277,18 @@ export function YouTubeResults({ searchQuery }: YouTubeResultsProps) {
               </div>
             </div>
           )}
-
-          {/* Messaggio fine risultati */}
-          {!hasMore && videos.length > 0 && (
-            <div className="flex justify-center py-3 sm:py-4">
-              <div className="text-xs sm:text-sm text-gray-500 text-center">
-                Hai visto tutti i {totalResults.toLocaleString()} risultati
-                disponibili
-              </div>
-            </div>
-          )}
         </>
       )}
 
       {!loading && hasSearched && videos.length === 0 && !error && (
         <Card>
           <CardContent className="p-6 sm:p-8 text-center">
-            <Play className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
+            <Music2 className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-3 sm:mb-4" />
             <p className="text-gray-500 text-sm sm:text-base">
-              Nessun video trovato per "{searchQuery}"
+              Nessun video con testi trovato per "{searchQuery}"
             </p>
             <p className="text-xs sm:text-sm text-gray-400 mt-2">
-              Prova con una ricerca diversa
+              Prova con artista e titolo separati o verifica l'ortografia
             </p>
           </CardContent>
         </Card>

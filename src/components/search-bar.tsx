@@ -24,7 +24,7 @@ export function SearchBar({
       <CardContent className="p-3 sm:p-6">
         <form
           onSubmit={handleSearch}
-          className="flex flex-col sm:flex-row gap-2 sm:gap-3"
+          className="flex flex-col sm:items-center sm:flex-row gap-2 sm:gap-3"
         >
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -34,10 +34,10 @@ export function SearchBar({
               placeholder="Cerca canzone o artista..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 h-10 sm:h-auto"
+              className="pl-10 h-10"
             />
           </div>
-          <Button type="submit" className="w-full sm:w-auto h-10 sm:h-auto">
+          <Button type="submit" size={"lg"} variant="outline">
             Cerca
           </Button>
         </form>

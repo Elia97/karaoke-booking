@@ -35,6 +35,17 @@ export interface YouTubeSearchResponse {
 }
 
 export const youtubeService = {
+  /**
+   * Cerca video su YouTube - VERSIONI ORIGINALI CON TESTI
+   * IMPORTANTE: Ogni chiamata consuma 100 unità di quota API
+   * La quota giornaliera gratuita è di 10.000 unità
+   *
+   * STRATEGIA OTTIMIZZATA:
+   * - 10 risultati per ricerca (massima UX, stesso costo API)
+   * - Versioni ORIGINALI con lyrics sovrapposti
+   * - Esclude: karaoke, instrumental, cover, live (solo alta qualità)
+   * - Per una serata: 50 ricerche × 100 unità = 5.000 unità (metà quota!)
+   */
   searchVideos: async (
     query: string,
     maxResults: number = 10,
@@ -48,7 +59,15 @@ export const youtubeService = {
     }
 
     try {
-      const searchQuery = addLyrics ? `${query} lyrics` : query;
+      // STRATEGIA OTTIMIZZATA: Cerca versioni originali con testi, evita contenuto di bassa qualità
+      let searchQuery;
+      if (addLyrics) {
+        // Cerca versioni originali con lyrics, esclude tutte le versioni indesiderate
+        searchQuery = `${query} lyrics -instrumental -cover -live`;
+      } else {
+        searchQuery = query;
+      }
+
       const params: Record<string, string | number> = {
         part: "snippet",
         q: searchQuery,
@@ -57,6 +76,7 @@ export const youtubeService = {
         key: API_KEY,
         safeSearch: "moderate",
         videoEmbeddable: "true",
+        order: "relevance", // Prioritizza relevanza per avere versioni originali
       };
 
       // Aggiungi il token di pagina se presente

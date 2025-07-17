@@ -1,4 +1,3 @@
-import { Music } from "lucide-react";
 import { Badge } from "@/components/ui";
 
 interface HeaderProps {
@@ -11,7 +10,8 @@ export function Header({ tableNumber }: HeaderProps) {
       <div className="max-w-4xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-            <Music className="size-6 sm:size-9" />
+            {/* <Music className="size-6 sm:size-9" /> */}
+            <img src="/logo.svg" alt="Logo" className="size-6 sm:size-9" />
             <h1 className="text-2xl sm:text-3xl font-bold">Karaoke</h1>
           </div>
           <p className="mb-2 sm:mb-3 text-sm sm:text-base text-muted-foreground">

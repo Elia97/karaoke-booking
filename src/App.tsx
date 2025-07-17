@@ -47,8 +47,8 @@ export default function App(): React.JSX.Element {
               className="text-xs sm:text-sm px-1 sm:px-3"
             >
               <Sparkles className="size-3 sm:size-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Suggerimenti</span>
-              <span className="xs:hidden">Sugger.</span>
+              <span className="hidden xs:inline">Sugger.</span>
+              <span className="xs:hidden">Suggerimenti</span>
             </TabsTrigger>
             <TabsTrigger
               value="quiz"
@@ -62,8 +62,8 @@ export default function App(): React.JSX.Element {
               className="text-xs sm:text-sm px-1 sm:px-3"
             >
               <Search className="size-3 sm:size-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">Ricerca</span>
-              <span className="xs:hidden">Cerca</span>
+              <span className="hidden xs:inline">Cerca</span>
+              <span className="xs:hidden">Ricerca</span>
             </TabsTrigger>
           </TabsList>
 
